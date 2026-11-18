@@ -159,11 +159,143 @@
        ======================================================== -->
   <script src="../js/app.js"></script>
 
-  <!-- Service Worker PWA -->
+  <!-- ========================================================
+       MODAL DE INSTALACIÓN PWA
+       ======================================================== -->
+  <div id="pwa-install-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center space-x-3">
+          <img src="../img/icon-96x96.png" onerror="this.src='../kinekids-logo.jpg'" alt="KineKids" class="w-12 h-12 rounded-2xl shadow-md border border-slate-100">
+          <div>
+            <h3 class="font-extrabold text-slate-900 text-lg">Instalar KineKids</h3>
+            <p class="text-xs text-slate-500 font-medium">Úsala como aplicación en tu pantalla</p>
+          </div>
+        </div>
+        <button type="button" onclick="closePWAInstallModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="my-5 space-y-4">
+        <!-- Botón de instalación nativa si el navegador lo permite -->
+        <div id="pwa-native-prompt-container" class="hidden">
+          <button type="button" onclick="executeNativeInstallPrompt()" class="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold py-3 px-4 rounded-2xl shadow-lg shadow-teal-500/25 flex items-center justify-center space-x-2 transition transform hover:scale-[1.02] active:scale-95 cursor-pointer">
+            <i class="fa-solid fa-circle-down text-lg"></i>
+            <span>Instalar Automáticamente Ahora</span>
+          </button>
+          <div class="my-4 flex items-center justify-center space-x-2">
+            <span class="h-px bg-slate-200 flex-1"></span>
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">o sigue los pasos manuales</span>
+            <span class="h-px bg-slate-200 flex-1"></span>
+          </div>
+        </div>
+
+        <!-- Guía paso a paso según dispositivo -->
+        <div class="grid grid-cols-1 gap-3 text-xs">
+          <!-- Tarjeta PC -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+            <div class="flex items-center space-x-2 font-bold text-slate-800 mb-1.5">
+              <i class="fa-solid fa-laptop text-teal-600 text-sm"></i>
+              <span>Si estás en Computador (PC / Mac):</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-slate-600 ml-1">
+              <li>Mira la <b>barra de direcciones URL</b> arriba (donde dice <i>https://...</i>).</li>
+              <li>Al lado derecho verás un ícono de pantalla con flecha <i class="fa-solid fa-download text-teal-600"></i> o un círculo <i class="fa-solid fa-circle-plus text-teal-600"></i>.</li>
+              <li>Haz clic en <b>"Instalar KineKids"</b>.</li>
+              <li><i>Alternativa:</i> Clic en los <b>3 puntos verticales (⋮)</b> de Chrome (arriba a la derecha del navegador) &gt; <b>Guardar y compartir</b> &gt; <b>Instalar KineKids</b>.</li>
+            </ol>
+          </div>
+
+          <!-- Tarjeta Android -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+            <div class="flex items-center space-x-2 font-bold text-slate-800 mb-1.5">
+              <i class="fa-brands fa-android text-emerald-600 text-sm"></i>
+              <span>Si estás en Celular Android (Google Chrome):</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-slate-600 ml-1">
+              <li>Toca los <b>3 puntos verticales (⋮)</b> en la esquina superior derecha de Chrome.</li>
+              <li>Toca en <b>"Instalar aplicación"</b> (o <i>"Añadir a pantalla principal"</i>).</li>
+              <li>Confirma en <b>"Instalar"</b> y se creará el ícono en tu teléfono.</li>
+            </ol>
+          </div>
+
+          <!-- Tarjeta iPhone -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+            <div class="flex items-center space-x-2 font-bold text-slate-800 mb-1.5">
+              <i class="fa-brands fa-apple text-slate-800 text-sm"></i>
+              <span>Si estás en iPhone / iPad (Safari):</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-slate-600 ml-1">
+              <li>Toca el botón <b>Compartir</b> <i class="fa-solid fa-arrow-up-from-bracket text-blue-600"></i> (cuadrado con flecha hacia arriba).</li>
+              <li>Desliza hacia abajo y toca en <b>"Añadir a pantalla de inicio"</b>.</li>
+              <li>Toca <b>"Añadir"</b> arriba a la derecha.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button type="button" onclick="closePWAInstallModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+          Entendido, cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Worker PWA y Controlador de Instalación -->
   <script>
+    let deferredInstallPrompt = null;
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('../sw.js');
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('../sw.js')
+          .then((reg) => console.log('[PWA] Service Worker registrado:', reg.scope))
+          .catch((err) => console.warn('[PWA] Error registrando SW:', err));
+      });
     }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const promptContainer = document.getElementById('pwa-native-prompt-container');
+      if (promptContainer) promptContainer.classList.remove('hidden');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      closePWAInstallModal();
+      if (typeof showToast === 'function') {
+        showToast('¡KineKids se instaló correctamente en tu dispositivo!', 'success');
+      }
+    });
+
+    window.triggerPWAInstall = function() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then((choiceResult) => {
+          deferredInstallPrompt = null;
+        });
+      } else {
+        const modal = document.getElementById('pwa-install-modal');
+        if (modal) modal.classList.remove('hidden');
+      }
+    };
+
+    window.executeNativeInstallPrompt = function() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then((res) => {
+          deferredInstallPrompt = null;
+          closePWAInstallModal();
+        });
+      }
+    };
+
+    window.closePWAInstallModal = function() {
+      const modal = document.getElementById('pwa-install-modal');
+      if (modal) modal.classList.add('hidden');
+    };
   </script>
 </body>
 </html>

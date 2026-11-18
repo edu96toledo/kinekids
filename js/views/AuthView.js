@@ -11,10 +11,19 @@ function renderLoginView() {
     <div class="max-w-md w-full mx-auto my-6">
       <div class="text-center mb-8">
         <div class="inline-flex w-20 h-20 rounded-3xl overflow-hidden shadow-xl shadow-teal-500/25 mb-3 border border-slate-100">
-          <img src="assets/images/kinekids-logo.jpg" onerror="this.src='kinekids-logo.jpg'" alt="KineKids" class="w-full h-full object-cover">
+          <img src="img/icon-192x192.png" onerror="this.src='kinekids-logo.jpg'" alt="KineKids" class="w-full h-full object-cover">
         </div>
         <h2 class="text-2xl font-black text-slate-900 tracking-tight">KineKids</h2>
         <p class="text-xs text-slate-500 mt-1">Evaluación de Marcha Pediátrica • Telemedicina Kinésica</p>
+        
+        <!-- Botón de Instalación App Directa -->
+        <div class="mt-4 flex justify-center">
+          <button type="button" onclick="triggerPWAInstall()" class="inline-flex items-center space-x-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg shadow-teal-600/30 transition transform hover:scale-105 active:scale-95 cursor-pointer">
+            <i class="fa-solid fa-download"></i>
+            <span>Instalar como Aplicación</span>
+            <span class="bg-white/20 text-[10px] px-2 py-0.5 rounded-full ml-1 font-semibold">PWA</span>
+          </button>
+        </div>
       </div>
 
       <div class="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-xl shadow-slate-200/50">
