@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// USERS – Almacena autenticación dual (RUT / Email) y RBAC
+model User {
+  id                 BigInt                    @id @default(autoincrement())
+  name               String                    @default("Usuario")
+  rut                String?                   @unique @db.VarChar(15)
+  email              String?                   @unique @db.VarChar(120)
+  passwordHash       String                    @map("password_hash")
+  role               Role                      @default(Parent)
+  phone              String?                   @db.VarChar(30)
+  clinicAddress      String?                   @map("clinic_address") @db.VarChar(200)
+  clinicBookingUrl   String?                   @map("clinic_booking_url") @db.VarChar(255)
+  createdAt          DateTime                  @default(now()) @map("created_at")
+  updatedAt          DateTime                  @updatedAt @map("updated_at")
+  
+  children           Child[]                   @relation("UserChildren")
+  evaluations        Evaluation[]              @relation("ClinicianEvaluations")
+  officialResponses  OfficialClinicalResponse[]
+
+  @@map("users")
+}
+
+enum Role {
+  Parent
+  Clinician
+  SuperAdmin
+}
+
+/// CHILD – Niños evaluados
+model Child {
+  id          BigInt        @id @default(autoincrement())
+  userId      BigInt        @map("user_id")
+  name        String        @db.VarChar(100)
+  birthDate   DateTime      @map("birth_date") @db.Date
+  gender      String?       @default("No especificado") @db.VarChar(20)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  evaluations Evaluation[]
+  user        User          @relation("UserChildren", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("children")
+}
+
+/// EVALUATION – Ficha de evaluación clínica con triaje, multimedia y dictamen
+model Evaluation {
+  id                      BigInt                    @id @default(autoincrement())
+  childId                 BigInt                    @map("child_id")
+  clinicianId             BigInt?                   @map("clinician_id")
+  evaluationDate          DateTime                  @default(now()) @map("evaluation_date") @db.Date
+  ageYears                Int                       @map("age_years")
+  ageMonths               Int                       @map("age_months")
+  riskLevel               String                    @default("Verde") @map("risk_level") @db.VarChar(30)
+  totalScore              Int                       @default(0) @map("total_score")
+  redFlagsCount           Int                       @default(0) @map("red_flags_count")
+  
+  // Estado global y flujo
+  status                  String                    @default("PENDIENTE_EVALUACION") @db.VarChar(50)
+  referralStatus          String                    @default("NoRequerida") @map("referral_status") @db.VarChar(40)
+  parentQuery             String?                   @map("parent_query") @db.Text
+  notesClinician          String?                   @map("notes_clinician") @db.Text // Nota privada
+  
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @updatedAt @map("updated_at")
+  
+  child                   Child                     @relation(fields: [childId], references: [id], onDelete: Cascade)
+  clinician               User?                     @relation("ClinicianEvaluations", fields: [clinicianId], references: [id], onDelete: SetNull)
+  answers                 Answer[]
+  media                   EvaluationMedia[]
+  officialResponse        OfficialClinicalResponse?
+
+  @@map("evaluations")
+}
+
+/// EVALUATION_MEDIA – Archivos multimedia (fotos/videos) adjuntos por el padre
+model EvaluationMedia {
+  id                BigInt      @id @default(autoincrement())
+  evaluationId      BigInt      @map("evaluation_id")
+  tipoArchivo       String      @map("tipo_archivo") @db.VarChar(20) // FOTO | VIDEO
+  categoriaVista    String      @default("FRENTE") @map("categoria_vista") @db.VarChar(50) // FRENTE | PERFIL | POSTERIOR | CALZADO
+  tituloDescriptivo String?     @map("titulo_descriptivo") @db.VarChar(150)
+  urlArchivo        String      @map("url_archivo") @db.VarChar(500)
+  nombreArchivo     String      @map("nombre_archivo") @db.VarChar(200)
+  mimeType          String      @map("mime_type") @db.VarChar(80)
+  tamanoBytes       BigInt      @map("tamano_bytes")
+  duracionSegundos  Int?        @map("duracion_segundos")
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  evaluation        Evaluation  @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("evaluation_media")
+}
+
+/// OFFICIAL_CLINICAL_RESPONSE – Dictamen clínico oficial emitido por el Kinesiólogo
+model OfficialClinicalResponse {
+  id                         BigInt      @id @default(autoincrement())
+  evaluationId               BigInt      @unique @map("evaluation_id")
+  clinicianId                BigInt      @map("clinician_id")
+  tipoResolucion             String      @map("tipo_resolucion") @db.VarChar(50) // NORMAL | OBSERVACION_TELE | REQUIERE_PRESENCIAL
+  requiereConsultaPresencial Boolean     @default(false) @map("requiere_consulta_presencial")
+  mensajeOficialPadre        String      @map("mensaje_oficial_padre") @db.Text
+  indicacionesDomiciliarias  String?     @map("indicaciones_domiciliarias") @db.Text
+  datosContactoAgenda        String?     @map("datos_contacto_agenda") @db.Text
+  fechaRespuesta             DateTime    @default(now()) @map("fecha_respuesta")
+  updatedAt                  DateTime    @updatedAt @map("updated_at")
+
+  evaluation                 Evaluation  @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  clinician                  User        @relation(fields: [clinicianId], references: [id], onDelete: Restrict)
+
+  @@map("official_clinical_responses")
+}
+
+/// QUESTION – Preguntas clínicas elocuentes adaptadas por edad
+model Question {
+  id           BigInt      @id @default(autoincrement())
+  category     String      @default("General") @db.VarChar(100)
+  text         String      @db.VarChar(500)
+  subtitleHelp String?     @map("subtitle_help") @db.VarChar(500)
+  ageMinMonths Int         @map("age_min_months")
+  ageMaxMonths Int         @map("age_max_months")
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  
+  options      Option[]
+  answers      Answer[]
+
+  @@map("questions")
+}
+
+model Option {
+  id              BigInt      @id @default(autoincrement())
+  questionId      BigInt      @map("question_id")
+  text            String      @db.VarChar(300)
+  clinicalConcept String      @default("") @map("clinical_concept") @db.VarChar(300)
+  riskWeight      Int         @default(0) @map("risk_weight")
+  isRedFlag       Boolean     @default(false) @map("is_red_flag")
+  isDefault       Boolean     @default(false) @map("is_default")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  
+  question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers         Answer[]
+
+  @@map("options")
+}
+
+model Answer {
+  id           BigInt      @id @default(autoincrement())
+  evaluationId BigInt      @map("evaluation_id")
+  questionId   BigInt      @map("question_id")
+  optionId     BigInt?     @map("option_id")
+  customValue  String?     @map("custom_value") @db.Text
+  createdAt    DateTime    @default(now()) @map("created_at")
+  
+  evaluation   Evaluation  @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  question     Question    @relation(fields: [questionId], references: [id])
+  option       Option?     @relation(fields: [optionId], references: [id])
+
+  @@unique([evaluationId, questionId])
+  @@map("answers")
+}

@@ -1,0 +1,51 @@
+{
+    "name": "KineKids - Evaluación de Marcha Pediátrica",
+    "short_name": "KineKids",
+    "description": "Plataforma de evaluación de marcha pediátrica y telemedicina kinésica para niños de 0 a 12 años en Chile.",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f8fafc",
+    "theme_color": "#0d9488",
+    "lang": "es-CL",
+    "categories": ["health", "medical"],
+    "icons": [
+        {
+            "src": "img/kinekids-logo.jpg",
+            "sizes": "512x512",
+            "type": "image/jpeg",
+            "purpose": "any"
+        },
+        {
+            "src": "img/kinekids-logo.jpg",
+            "sizes": "192x192",
+            "type": "image/jpeg",
+            "purpose": "any"
+        },
+        {
+            "src": "img/kinekids-logo.jpg",
+            "sizes": "144x144",
+            "type": "image/jpeg",
+            "purpose": "any"
+        },
+        {
+            "src": "img/kinekids-logo.jpg",
+            "sizes": "96x96",
+            "type": "image/jpeg",
+            "purpose": "any"
+        },
+        {
+            "src": "img/kinekids-logo.jpg",
+            "sizes": "72x72",
+            "type": "image/jpeg",
+            "purpose": "any"
+        },
+        {
+            "src": "img/kinekids-logo.jpg",
+            "sizes": "48x48",
+            "type": "image/jpeg",
+            "purpose": "any"
+        }
+    ]
+}
